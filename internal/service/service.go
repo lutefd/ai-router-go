@@ -16,9 +16,11 @@ type AIServiceInterface interface {
 }
 
 type AuthServiceInterface interface {
-	AuthenticateUser(ctx context.Context, email string, name string, googleID string) (*models.User, string, error)
+	AuthenticateUser(ctx context.Context, email string, name string, googleID string) (*models.User, *TokenPair, error)
 	GenerateToken(user *models.User) (string, error)
 	ValidateToken(tokenString string) (*Claims, error)
+	GenerateTokenPair(user *models.User) (*TokenPair, error)
+	RefreshAccessToken(refreshToken string) (*TokenPair, error)
 }
 
 type ChatServiceInterface interface {
