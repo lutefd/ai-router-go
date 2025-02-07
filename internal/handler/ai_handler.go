@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/lutefd/ai-router-go/internal/middleware"
+	"github.com/lutefd/ai-router-go/internal/service"
 	"github.com/lutefd/ai-router-go/internal/strategy"
 )
 
@@ -18,6 +20,12 @@ func NewAIHandler(aiStrategy strategy.AIStrategyInterface) *AIHandler {
 }
 
 func (h *AIHandler) ProxyRequest(w http.ResponseWriter, r *http.Request) {
+	claims := r.Context().Value(middleware.UserContextKey).(*service.Claims)
+	if claims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	platform := r.Header.Get("Platform")
 	if platform == "" {
 		http.Error(w, "Platform header is required", http.StatusBadRequest)
@@ -47,6 +55,9 @@ func (h *AIHandler) ProxyRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("User %s (%s) requesting AI generation with platform: %s, model: %s",
+		claims.Name, claims.UserID, platform, model)
+
 	err = h.aiStrategy.GenerateResponse(r.Context(), platform, model,
 		string(body), func(chunk string) {
 			fmt.Fprintf(w, "data: %s\n\n", chunk)
@@ -54,7 +65,7 @@ func (h *AIHandler) ProxyRequest(w http.ResponseWriter, r *http.Request) {
 		})
 
 	if err != nil {
-		log.Printf("Error generating response: %v", err)
+		log.Printf("Error generating response for user %s: %v", claims.UserID, err)
 		fmt.Fprintf(w, "data: ERROR: %s\n\n", err.Error())
 		flusher.Flush()
 		return
@@ -62,5 +73,5 @@ func (h *AIHandler) ProxyRequest(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "data: [DONE]\n\n")
 	flusher.Flush()
-	log.Println("Stream completed")
+	log.Printf("Stream completed for user %s", claims.UserID)
 }
