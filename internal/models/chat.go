@@ -4,6 +4,7 @@ import "time"
 
 type Chat struct {
 	ID        string    `json:"id" bson:"_id"`
+	User      string    `json:"user" bson:"user"`
 	Title     string    `json:"title" bson:"title"`
 	Messages  []Message `json:"messages" bson:"messages"`
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
