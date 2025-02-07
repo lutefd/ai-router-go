@@ -109,11 +109,11 @@ func (m *MockAuthServiceInterface) EXPECT() *MockAuthServiceInterfaceMockRecorde
 }
 
 // AuthenticateUser mocks base method.
-func (m *MockAuthServiceInterface) AuthenticateUser(ctx context.Context, email, name, googleID string) (*models.User, string, error) {
+func (m *MockAuthServiceInterface) AuthenticateUser(ctx context.Context, email, name, googleID string) (*models.User, *service.TokenPair, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AuthenticateUser", ctx, email, name, googleID)
 	ret0, _ := ret[0].(*models.User)
-	ret1, _ := ret[1].(string)
+	ret1, _ := ret[1].(*service.TokenPair)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -139,6 +139,36 @@ func (mr *MockAuthServiceInterfaceMockRecorder) GenerateToken(user any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockAuthServiceInterface)(nil).GenerateToken), user)
 }
 
+// GenerateTokenPair mocks base method.
+func (m *MockAuthServiceInterface) GenerateTokenPair(user *models.User) (*service.TokenPair, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateTokenPair", user)
+	ret0, _ := ret[0].(*service.TokenPair)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateTokenPair indicates an expected call of GenerateTokenPair.
+func (mr *MockAuthServiceInterfaceMockRecorder) GenerateTokenPair(user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTokenPair", reflect.TypeOf((*MockAuthServiceInterface)(nil).GenerateTokenPair), user)
+}
+
+// RefreshAccessToken mocks base method.
+func (m *MockAuthServiceInterface) RefreshAccessToken(refreshToken string) (*service.TokenPair, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshAccessToken", refreshToken)
+	ret0, _ := ret[0].(*service.TokenPair)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshAccessToken indicates an expected call of RefreshAccessToken.
+func (mr *MockAuthServiceInterfaceMockRecorder) RefreshAccessToken(refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshAccessToken", reflect.TypeOf((*MockAuthServiceInterface)(nil).RefreshAccessToken), refreshToken)
+}
+
 // ValidateToken mocks base method.
 func (m *MockAuthServiceInterface) ValidateToken(tokenString string) (*service.Claims, error) {
 	m.ctrl.T.Helper()
@@ -152,4 +182,124 @@ func (m *MockAuthServiceInterface) ValidateToken(tokenString string) (*service.C
 func (mr *MockAuthServiceInterfaceMockRecorder) ValidateToken(tokenString any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateToken", reflect.TypeOf((*MockAuthServiceInterface)(nil).ValidateToken), tokenString)
+}
+
+// MockChatServiceInterface is a mock of ChatServiceInterface interface.
+type MockChatServiceInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockChatServiceInterfaceMockRecorder
+	isgomock struct{}
+}
+
+// MockChatServiceInterfaceMockRecorder is the mock recorder for MockChatServiceInterface.
+type MockChatServiceInterfaceMockRecorder struct {
+	mock *MockChatServiceInterface
+}
+
+// NewMockChatServiceInterface creates a new mock instance.
+func NewMockChatServiceInterface(ctrl *gomock.Controller) *MockChatServiceInterface {
+	mock := &MockChatServiceInterface{ctrl: ctrl}
+	mock.recorder = &MockChatServiceInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockChatServiceInterface) EXPECT() *MockChatServiceInterfaceMockRecorder {
+	return m.recorder
+}
+
+// CreateChat mocks base method.
+func (m *MockChatServiceInterface) CreateChat(ctx context.Context, chat *models.Chat) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateChat", ctx, chat)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateChat indicates an expected call of CreateChat.
+func (mr *MockChatServiceInterfaceMockRecorder) CreateChat(ctx, chat any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChat", reflect.TypeOf((*MockChatServiceInterface)(nil).CreateChat), ctx, chat)
+}
+
+// DeleteChat mocks base method.
+func (m *MockChatServiceInterface) DeleteChat(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteChat", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteChat indicates an expected call of DeleteChat.
+func (mr *MockChatServiceInterfaceMockRecorder) DeleteChat(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteChat", reflect.TypeOf((*MockChatServiceInterface)(nil).DeleteChat), ctx, id)
+}
+
+// GetChat mocks base method.
+func (m *MockChatServiceInterface) GetChat(ctx context.Context, id string) (*models.Chat, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetChat", ctx, id)
+	ret0, _ := ret[0].(*models.Chat)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetChat indicates an expected call of GetChat.
+func (mr *MockChatServiceInterfaceMockRecorder) GetChat(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChat", reflect.TypeOf((*MockChatServiceInterface)(nil).GetChat), ctx, id)
+}
+
+// UpdateChat mocks base method.
+func (m *MockChatServiceInterface) UpdateChat(ctx context.Context, chat *models.Chat) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateChat", ctx, chat)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateChat indicates an expected call of UpdateChat.
+func (mr *MockChatServiceInterfaceMockRecorder) UpdateChat(ctx, chat any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateChat", reflect.TypeOf((*MockChatServiceInterface)(nil).UpdateChat), ctx, chat)
+}
+
+// MockUserServiceInterface is a mock of UserServiceInterface interface.
+type MockUserServiceInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserServiceInterfaceMockRecorder
+	isgomock struct{}
+}
+
+// MockUserServiceInterfaceMockRecorder is the mock recorder for MockUserServiceInterface.
+type MockUserServiceInterfaceMockRecorder struct {
+	mock *MockUserServiceInterface
+}
+
+// NewMockUserServiceInterface creates a new mock instance.
+func NewMockUserServiceInterface(ctrl *gomock.Controller) *MockUserServiceInterface {
+	mock := &MockUserServiceInterface{ctrl: ctrl}
+	mock.recorder = &MockUserServiceInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserServiceInterface) EXPECT() *MockUserServiceInterfaceMockRecorder {
+	return m.recorder
+}
+
+// GetUsersChatList mocks base method.
+func (m *MockUserServiceInterface) GetUsersChatList(ctx context.Context, userID string) ([]*models.UserChat, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsersChatList", ctx, userID)
+	ret0, _ := ret[0].([]*models.UserChat)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsersChatList indicates an expected call of GetUsersChatList.
+func (mr *MockUserServiceInterfaceMockRecorder) GetUsersChatList(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersChatList", reflect.TypeOf((*MockUserServiceInterface)(nil).GetUsersChatList), ctx, userID)
 }
