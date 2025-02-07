@@ -3,6 +3,7 @@ package mongodb_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/lutefd/ai-router-go/internal/models"
 	"github.com/lutefd/ai-router-go/internal/repository/mongodb"
@@ -181,21 +182,30 @@ func TestUserRepository_GetUsersChatList(t *testing.T) {
 	err := repo.CreateUser(ctx, testUser)
 	require.NoError(t, err)
 
+	now := time.Now()
+	olderTime := now.Add(-1 * time.Hour)
+
 	testChats := []bson.M{
 		{
-			"_id":   "chat-1",
-			"title": "First Chat",
-			"user":  testUser.ID,
+			"_id":        "chat-1",
+			"title":      "First Chat",
+			"user":       testUser.ID,
+			"created_at": now,
+			"updated_at": now,
 		},
 		{
-			"_id":   "chat-2",
-			"title": "Second Chat",
-			"user":  testUser.ID,
+			"_id":        "chat-2",
+			"title":      "Second Chat",
+			"user":       testUser.ID,
+			"created_at": olderTime,
+			"updated_at": olderTime,
 		},
 		{
-			"_id":   "chat-3",
-			"title": "Other User Chat",
-			"user":  "other-user-id",
+			"_id":        "chat-3",
+			"title":      "Other User Chat",
+			"user":       "other-user-id",
+			"created_at": now,
+			"updated_at": now,
 		},
 	}
 
@@ -241,10 +251,15 @@ func TestUserRepository_GetUsersChatList(t *testing.T) {
 			assert.Len(t, chats, tt.wantCount)
 
 			if tt.wantCount > 0 {
+				assert.True(t, chats[0].UpdatedAt.After(chats[1].UpdatedAt),
+					"First chat should be more recent than second chat")
+
 				for _, chat := range chats {
 					assert.Equal(t, tt.userID, chat.User)
 					assert.Contains(t, []string{"First Chat", "Second Chat"}, chat.ChatTitle)
 					assert.NotEmpty(t, chat.ID)
+					assert.False(t, chat.CreatedAt.IsZero(), "CreatedAt should not be zero")
+					assert.False(t, chat.UpdatedAt.IsZero(), "UpdatedAt should not be zero")
 				}
 			}
 		})

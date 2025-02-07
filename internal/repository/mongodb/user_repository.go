@@ -96,7 +96,12 @@ func (r *UserRepository) GetUsersChatList(ctx context.Context, userID string) ([
 				"id":         "$_id",
 				"user":       "$user",
 				"chat_title": "$title",
+				"created_at": "$created_at",
+				"updated_at": "$updated_at",
 			},
+		},
+		{
+			"$sort": bson.M{"updated_at": -1},
 		},
 	}
 
@@ -110,11 +115,6 @@ func (r *UserRepository) GetUsersChatList(ctx context.Context, userID string) ([
 	if err = cursor.All(ctx, &chats); err != nil {
 		return nil, fmt.Errorf("error decoding user chats: %w", err)
 	}
-
-	var rawDocs []bson.M
-	cursor, _ = r.db.Collection("chats").Aggregate(ctx, pipeline)
-	cursor.All(ctx, &rawDocs)
-	fmt.Printf("Raw documents: %+v\n", rawDocs)
 
 	return chats, nil
 }
