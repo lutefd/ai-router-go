@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -20,6 +21,7 @@ type Config struct {
 	JWTSecret          string
 	ClientURL          string
 	AuthRedirectURL    string
+	WorkerID           int64
 }
 
 func LoadConfig(skipEnvFile ...bool) (*Config, error) {
@@ -86,6 +88,12 @@ func LoadConfig(skipEnvFile ...bool) (*Config, error) {
 	config.AuthRedirectURL = os.Getenv("AUTH_REDIRECT_URL")
 	if config.AuthRedirectURL == "" {
 		return nil, fmt.Errorf("AUTH_REDIRECT_URL environment variable is not set")
+	}
+
+	config.WorkerID, err = strconv.ParseInt(os.Getenv("WORKER_ID"), 10, 64)
+	if err != nil || config.WorkerID < 1 {
+		config.WorkerID = int64(1)
+		log.Println("WORKER_ID environment variable is not set or invalid, defaulting to 1")
 	}
 
 	return config, nil
