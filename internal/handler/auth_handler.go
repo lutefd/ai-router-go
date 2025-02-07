@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/lutefd/ai-router-go/internal/models"
 	"github.com/lutefd/ai-router-go/internal/service"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -18,6 +20,8 @@ type AuthHandler struct {
 	authService service.AuthServiceInterface
 	clientURL   string
 }
+
+type TokenPair = service.TokenPair
 
 func NewAuthHandler(authService service.AuthServiceInterface, clientID, clientSecret, redirectURL, clientURL string) *AuthHandler {
 	oauthConfig := &oauth2.Config{
@@ -79,14 +83,46 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, jwtToken, err := h.authService.AuthenticateUser(r.Context(), userInfo.Email, userInfo.Name, userInfo.ID)
+	_, tokenPair, err := h.authService.AuthenticateUser(r.Context(), userInfo.Email, userInfo.Name, userInfo.ID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Authentication failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	redirectWithToken := fmt.Sprintf("%s?token=%s", redirectURL, jwtToken)
-	http.Redirect(w, r, redirectWithToken, http.StatusTemporaryRedirect)
+	isMobile := r.URL.Query().Get("platform") == "mobile"
+	if isMobile {
+		scheme := r.URL.Query().Get("app_scheme")
+		redirectURL = fmt.Sprintf("%s://oauth/callback?access_token=%s&refresh_token=%s&expires_in=%d",
+			scheme,
+			tokenPair.AccessToken,
+			tokenPair.RefreshToken,
+			tokenPair.ExpiresIn)
+	} else {
+		redirectURL = fmt.Sprintf("%s?access_token=%s&refresh_token=%s&expires_in=%d",
+			redirectURL,
+			tokenPair.AccessToken,
+			tokenPair.RefreshToken,
+			tokenPair.ExpiresIn)
+	}
+
+	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
+}
+
+func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	refreshToken := r.Header.Get("X-Refresh-Token")
+	if refreshToken == "" {
+		http.Error(w, "Refresh token required", http.StatusBadRequest)
+		return
+	}
+
+	tokenPair, err := h.authService.RefreshAccessToken(refreshToken)
+	if err != nil {
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tokenPair)
 }
 
 type userInfo struct {
@@ -119,4 +155,82 @@ func (h *AuthHandler) getUserInfo(ctx context.Context, accessToken string) (*use
 	}
 
 	return &info, nil
+}
+
+type GoogleIDTokenClaims struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Locale        string `json:"locale"`
+	Sub           string `json:"sub"`
+}
+
+func (h *AuthHandler) HandleNativeSignIn(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		IDToken string `json:"id_token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	tokenInfo, err := h.verifyGoogleIDToken(r.Context(), req.IDToken)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid ID token: %v", err), http.StatusUnauthorized)
+		return
+	}
+
+	user, tokenPair, err := h.authService.AuthenticateUser(
+		r.Context(),
+		tokenInfo.Email,
+		tokenInfo.Name,
+		tokenInfo.Sub,
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Authentication failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		User      *models.User `json:"user"`
+		TokenPair *TokenPair   `json:"tokens"`
+	}{
+		User:      user,
+		TokenPair: tokenPair,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *AuthHandler) verifyGoogleIDToken(ctx context.Context, idToken string) (*GoogleIDTokenClaims, error) {
+	provider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create provider: %w", err)
+	}
+
+	verifier := provider.Verifier(&oidc.Config{
+		ClientID: h.oauthConfig.ClientID,
+	})
+
+	token, err := verifier.Verify(ctx, idToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify token: %w", err)
+	}
+
+	var claims GoogleIDTokenClaims
+	if err := token.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("failed to parse claims: %w", err)
+	}
+
+	return &claims, nil
 }

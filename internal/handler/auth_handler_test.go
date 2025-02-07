@@ -152,7 +152,11 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 						Email: "test@example.com",
 						Name:  "Test User",
 						Role:  "user",
-					}, "jwt-token", nil)
+					}, &TokenPair{
+						AccessToken:  "access-token",
+						RefreshToken: "refresh-token",
+						ExpiresIn:    900,
+					}, nil)
 			},
 			state:          url.QueryEscape("http://localhost:3000"),
 			code:           "valid-code",
@@ -188,7 +192,7 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusTemporaryRedirect {
 				location := rr.Header().Get("Location")
-				expectedURL := "http://localhost:3000?token=jwt-token"
+				expectedURL := "http://localhost:3000?access_token=access-token&refresh_token=refresh-token&expires_in=900"
 				assert.Equal(t, expectedURL, location)
 			}
 		})
@@ -208,4 +212,81 @@ func (t *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return t.base.RoundTrip(req)
 	}
 	return http.DefaultTransport.RoundTrip(req)
+}
+
+func TestAuthHandler_RefreshToken(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := mocks.NewMockAuthServiceInterface(ctrl)
+	handler := NewAuthHandler(mockAuthService, "client-id", "client-secret", "http://localhost:8080/callback", "http://localhost:3000")
+
+	tests := []struct {
+		name           string
+		setupMocks     func()
+		refreshToken   string
+		expectedStatus int
+		expectedBody   *TokenPair
+	}{
+		{
+			name: "successful refresh",
+			setupMocks: func() {
+				mockAuthService.EXPECT().
+					RefreshAccessToken("valid-refresh-token").
+					Return(&TokenPair{
+						AccessToken:  "new-access-token",
+						RefreshToken: "new-refresh-token",
+						ExpiresIn:    900,
+					}, nil)
+			},
+			refreshToken:   "valid-refresh-token",
+			expectedStatus: http.StatusOK,
+			expectedBody: &TokenPair{
+				AccessToken:  "new-access-token",
+				RefreshToken: "new-refresh-token",
+				ExpiresIn:    900,
+			},
+		},
+		{
+			name:           "missing refresh token",
+			setupMocks:     func() {},
+			refreshToken:   "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   nil,
+		},
+		{
+			name: "invalid refresh token",
+			setupMocks: func() {
+				mockAuthService.EXPECT().
+					RefreshAccessToken("invalid-token").
+					Return(nil, fmt.Errorf("invalid token"))
+			},
+			refreshToken:   "invalid-token",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
+
+			req := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+			if tt.refreshToken != "" {
+				req.Header.Set("X-Refresh-Token", tt.refreshToken)
+			}
+			rr := httptest.NewRecorder()
+
+			handler.RefreshToken(rr, req)
+
+			assert.Equal(t, tt.expectedStatus, rr.Code)
+
+			if tt.expectedBody != nil {
+				var response TokenPair
+				err := json.NewDecoder(rr.Body).Decode(&response)
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedBody, &response)
+			}
+		})
+	}
 }
