@@ -17,6 +17,8 @@ func routes(handler *handler.AIHandler, authHandler *handler.AuthHandler, chatHa
 		r.Route("/auth", func(r chi.Router) {
 			r.Get("/google/login", authHandler.GoogleLogin)
 			r.Get("/google/callback", authHandler.GoogleCallback)
+			r.Post("/google/native/signin", authHandler.HandleNativeSignIn)
+			r.Post("/google/refresh", authHandler.RefreshToken)
 		})
 
 		r.Route("/ai", func(r chi.Router) {
