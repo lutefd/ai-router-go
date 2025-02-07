@@ -27,6 +27,7 @@ func NewAuthService(userRepo repository.UserRepositoryInterface, jwtSecret strin
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
+	Name   string `json:"name"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -65,6 +66,7 @@ func (s *AuthService) GenerateToken(user *models.User) (string, error) {
 	claims := &Claims{
 		UserID: user.ID,
 		Email:  user.Email,
+		Name:   user.Name,
 		Role:   user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenExpiry)),

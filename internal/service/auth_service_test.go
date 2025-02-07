@@ -114,14 +114,12 @@ func TestAuthService_AuthenticateUser(t *testing.T) {
 	}
 }
 
-func TestAuthService_GenerateAndValidateToken(t *testing.T) {
-	authService := service.NewAuthService(nil, "test-secret")
-	user := &models.User{
-		ID:    "123",
-		Email: "test@example.com",
-		Name:  "Test User",
-		Role:  "user",
-	}
+func TestAuthService_GenerateToken(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUserRepo := mocks.NewMockUserRepositoryInterface(ctrl)
+	authService := service.NewAuthService(mockUserRepo, "test-secret")
 
 	tests := []struct {
 		name    string
@@ -129,8 +127,13 @@ func TestAuthService_GenerateAndValidateToken(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "valid token generation and validation",
-			user:    user,
+			name: "valid user",
+			user: &models.User{
+				ID:    "123",
+				Email: "test@example.com",
+				Name:  "Test User",
+				Role:  "user",
+			},
 			wantErr: false,
 		},
 		{
@@ -155,6 +158,7 @@ func TestAuthService_GenerateAndValidateToken(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.user.ID, claims.UserID)
 			assert.Equal(t, tt.user.Email, claims.Email)
+			assert.Equal(t, tt.user.Name, claims.Name)
 			assert.Equal(t, tt.user.Role, claims.Role)
 			assert.True(t, claims.ExpiresAt.Time.After(time.Now()))
 		})
