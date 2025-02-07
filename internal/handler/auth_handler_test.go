@@ -65,7 +65,6 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 
 	mockAuthService := mocks.NewMockAuthServiceInterface(ctrl)
 
-	// Create a test server to mock Google's OAuth2 endpoints
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -92,7 +91,6 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	// Create handler with test server endpoints
 	handler := NewAuthHandler(
 		mockAuthService,
 		"client-id",
@@ -101,7 +99,6 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 		"http://localhost:3000",
 	)
 
-	// Override OAuth2 config
 	handler.oauthConfig = &oauth2.Config{
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
@@ -116,11 +113,9 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 		},
 	}
 
-	// Create a custom transport
 	transport := &http.Transport{}
 	client := &http.Client{Transport: transport}
 
-	// Create a custom HTTP client that redirects Google API calls to our test server
 	oldClient := http.DefaultClient
 	http.DefaultClient = &http.Client{
 		Transport: &mockTransport{
