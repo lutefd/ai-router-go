@@ -6,9 +6,13 @@ import (
 	"github.com/lutefd/ai-router-go/internal/middleware"
 )
 
-func routes(handler *handler.AIHandler, authHandler *handler.AuthHandler, chatHandler *handler.ChatHandler, userHandler *handler.UserHandler, authMiddleware *middleware.AuthMiddleware) chi.Router {
+func routes(handler *handler.AIHandler, authHandler *handler.AuthHandler, chatHandler *handler.ChatHandler, userHandler *handler.UserHandler, healthHandler *handler.HealthHandler, authMiddleware *middleware.AuthMiddleware) chi.Router {
 
 	r := chi.NewRouter()
+
+	r.Get("/healthz", healthHandler.LivenessCheck)
+	r.Get("/readiness", healthHandler.ReadinessCheck)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.Get("/google/login", authHandler.GoogleLogin)
