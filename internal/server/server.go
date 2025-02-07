@@ -53,10 +53,22 @@ func Run() error {
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
+	healthHandler := handler.NewHealthHandler("1.0.0", conn.DB)
+
+	router := routes(
+		aiHandler,
+		authHandler,
+		chatHandler,
+		userHandler,
+		healthHandler,
+		authMiddleware,
+	)
+
+	healthHandler.MarkAsReady()
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
-		Handler:      routes(aiHandler, authHandler, chatHandler, userHandler, authMiddleware),
+		Handler:      router,
 		ReadTimeout:  10 * time.Minute,
 		WriteTimeout: 10 * time.Minute,
 	}
@@ -66,6 +78,8 @@ func Run() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
 		log.Println("Server is shutting down...")
+
+		healthHandler.MarkAsNotReady()
 
 		ctx, cancel := context.WithTimeout(context.Background(),
 			30*time.Second)
