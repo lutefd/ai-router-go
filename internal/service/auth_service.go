@@ -11,16 +11,24 @@ import (
 )
 
 type AuthService struct {
-	userRepo    repository.UserRepositoryInterface
-	jwtSecret   []byte
-	tokenExpiry time.Duration
+	userRepo           repository.UserRepositoryInterface
+	jwtSecret          []byte
+	tokenExpiry        time.Duration
+	refreshTokenExpiry time.Duration
+}
+
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
 }
 
 func NewAuthService(userRepo repository.UserRepositoryInterface, jwtSecret string) *AuthService {
 	return &AuthService{
-		userRepo:    userRepo,
-		jwtSecret:   []byte(jwtSecret),
-		tokenExpiry: 24 * time.Hour,
+		userRepo:           userRepo,
+		jwtSecret:          []byte(jwtSecret),
+		tokenExpiry:        15 * time.Minute,
+		refreshTokenExpiry: 30 * 24 * time.Hour,
 	}
 }
 
@@ -32,11 +40,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func (s *AuthService) AuthenticateUser(ctx context.Context, email string, name string, googleID string) (*models.User, string, error) {
+func (s *AuthService) AuthenticateUser(ctx context.Context, email string, name string, googleID string) (*models.User, *TokenPair, error) {
 	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if err.Error() != "user not found" {
-			return nil, "", fmt.Errorf("failed to get user: %w", err)
+			return nil, nil, fmt.Errorf("failed to get user: %w", err)
 		}
 
 		user = &models.User{
@@ -46,16 +54,16 @@ func (s *AuthService) AuthenticateUser(ctx context.Context, email string, name s
 			Role:  "user",
 		}
 		if err := s.userRepo.CreateUser(ctx, user); err != nil {
-			return nil, "", fmt.Errorf("failed to create user: %w", err)
+			return nil, nil, fmt.Errorf("failed to create user: %w", err)
 		}
 	}
 
-	token, err := s.GenerateToken(user)
+	tokenPair, err := s.GenerateTokenPair(user)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+		return nil, nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	return user, token, nil
+	return user, tokenPair, nil
 }
 
 func (s *AuthService) GenerateToken(user *models.User) (string, error) {
@@ -105,4 +113,46 @@ func (s *AuthService) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+func (s *AuthService) GenerateTokenPair(user *models.User) (*TokenPair, error) {
+	accessToken, err := s.GenerateToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshClaims := &Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.refreshTokenExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	signedRefreshToken, err := refreshToken.SignedString(s.jwtSecret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign refresh token: %w", err)
+	}
+
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: signedRefreshToken,
+		ExpiresIn:    int64(s.tokenExpiry.Seconds()),
+	}, nil
+}
+
+func (s *AuthService) RefreshAccessToken(refreshToken string) (*TokenPair, error) {
+	claims, err := s.ValidateToken(refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	user, err := s.userRepo.GetUser(context.Background(), claims.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	return s.GenerateTokenPair(user)
 }
