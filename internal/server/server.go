@@ -13,10 +13,12 @@ import (
 	"github.com/lutefd/ai-router-go/internal/config"
 	database "github.com/lutefd/ai-router-go/internal/database/mongodb"
 	"github.com/lutefd/ai-router-go/internal/handler"
+	"github.com/lutefd/ai-router-go/internal/middleware"
 	"github.com/lutefd/ai-router-go/internal/repository"
 	"github.com/lutefd/ai-router-go/internal/repository/mongodb"
 	"github.com/lutefd/ai-router-go/internal/service"
 	"github.com/lutefd/ai-router-go/internal/strategy"
+	"github.com/lutefd/ai-router-go/pkg/idgen"
 )
 
 func Run() error {
@@ -32,6 +34,10 @@ func Run() error {
 	}
 	defer conn.Close(ctx)
 
+	if err := idgen.Init(cfg.WorkerID); err != nil {
+		return fmt.Errorf("failed to initialize ID generator: %w", err)
+	}
+
 	geminiRepo := repository.NewGeminiRepository(ctx, cfg.GEMINI_SK)
 	openaiRepo := repository.NewOpenAIRepository(cfg.OPENAI_SK)
 	deepseekRepo := repository.NewDeepSeekRepository(cfg.DEEPSEEK_SK)
@@ -41,10 +47,16 @@ func Run() error {
 	aiStrategy := strategy.NewAIStrategy(aiService)
 	aiHandler := handler.NewAIHandler(aiStrategy)
 	authHandler := handler.NewAuthHandler(authService, cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.AuthRedirectURL, cfg.ClientURL)
+	chatRepo := mongodb.NewChatRepository(conn.DB)
+	chatService := service.NewChatService(chatRepo)
+	chatHandler := handler.NewChatHandler(chatService)
+	authMiddleware := middleware.NewAuthMiddleware(authService)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
-		Handler:      routes(aiHandler, authHandler),
+		Handler:      routes(aiHandler, authHandler, chatHandler, userHandler, authMiddleware),
 		ReadTimeout:  10 * time.Minute,
 		WriteTimeout: 10 * time.Minute,
 	}
