@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/lutefd/ai-router-go/internal/config"
+	database "github.com/lutefd/ai-router-go/internal/database/mongodb"
 	"github.com/lutefd/ai-router-go/internal/handler"
 	"github.com/lutefd/ai-router-go/internal/repository"
+	"github.com/lutefd/ai-router-go/internal/repository/mongodb"
 	"github.com/lutefd/ai-router-go/internal/service"
 	"github.com/lutefd/ai-router-go/internal/strategy"
 )
@@ -24,16 +26,25 @@ func Run() error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
+	conn, err := database.NewMongoDBConnection(ctx, cfg.MongoDBURI, cfg.MongoDBDatabase)
+	if err != nil {
+		return fmt.Errorf("failed to connect to MongoDB: %w", err)
+	}
+	defer conn.Close(ctx)
+
 	geminiRepo := repository.NewGeminiRepository(ctx, cfg.GEMINI_SK)
 	openaiRepo := repository.NewOpenAIRepository(cfg.OPENAI_SK)
 	deepseekRepo := repository.NewDeepSeekRepository(cfg.DEEPSEEK_SK)
+	userRepo := mongodb.NewUserRepository(conn.DB)
 	aiService := service.NewAIService(geminiRepo, openaiRepo, deepseekRepo)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	aiStrategy := strategy.NewAIStrategy(aiService)
 	aiHandler := handler.NewAIHandler(aiStrategy)
+	authHandler := handler.NewAuthHandler(authService, cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.AuthRedirectURL, cfg.ClientURL)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
-		Handler:      routes(aiHandler),
+		Handler:      routes(aiHandler, authHandler),
 		ReadTimeout:  10 * time.Minute,
 		WriteTimeout: 10 * time.Minute,
 	}
