@@ -20,3 +20,14 @@ type AuthServiceInterface interface {
 	GenerateToken(user *models.User) (string, error)
 	ValidateToken(tokenString string) (*Claims, error)
 }
+
+type ChatServiceInterface interface {
+	CreateChat(ctx context.Context, chat *models.Chat) error
+	GetChat(ctx context.Context, id string) (*models.Chat, error)
+	UpdateChat(ctx context.Context, chat *models.Chat) error
+	DeleteChat(ctx context.Context, id string) error
+}
+
+type UserServiceInterface interface {
+	GetUsersChatList(ctx context.Context, userID string) ([]*models.UserChat, error)
+}
