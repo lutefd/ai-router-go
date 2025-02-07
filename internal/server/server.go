@@ -10,28 +10,30 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lutefd/ai-router/internal/config"
-	"google.golang.org/genai"
+	"github.com/lutefd/ai-router-go/internal/config"
+	"github.com/lutefd/ai-router-go/internal/handler"
+	"github.com/lutefd/ai-router-go/internal/repository"
+	"github.com/lutefd/ai-router-go/internal/service"
+	"github.com/lutefd/ai-router-go/internal/strategy"
 )
 
-func run() error {
+func Run() error {
 	ctx := context.Background()
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	geminiClient, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  cfg.GEMINI_SK,
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create Gemini client: %w", err)
-	}
+	geminiRepo := repository.NewGeminiRepository(ctx, cfg.GEMINI_SK)
+	openaiRepo := repository.NewOpenAIRepository(cfg.OPENAI_SK)
+	deepseekRepo := repository.NewDeepSeekRepository(cfg.DEEPSEEK_SK)
+	aiService := service.NewAIService(geminiRepo, openaiRepo, deepseekRepo)
+	aiStrategy := strategy.NewAIStrategy(aiService)
+	aiHandler := handler.NewAIHandler(aiStrategy)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ServerPort),
-		Handler:      routes(),
+		Handler:      routes(aiHandler),
 		ReadTimeout:  10 * time.Minute,
 		WriteTimeout: 10 * time.Minute,
 	}
