@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/lutefd/ai-router/internal/server"
+	"github.com/lutefd/ai-router-go/internal/server"
 )
 
 func main() {
