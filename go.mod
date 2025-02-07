@@ -1,10 +1,11 @@
-module github.com/lutefd/ai-router
+module github.com/lutefd/ai-router-go
 
 go 1.23.1
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/joho/godotenv v1.5.1
+	github.com/sashabaranov/go-openai v1.37.0
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/genai v0.2.0
 )
