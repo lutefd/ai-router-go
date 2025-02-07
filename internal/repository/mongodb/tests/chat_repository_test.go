@@ -13,8 +13,8 @@ import (
 )
 
 func TestChatRepository_CreateChat(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewChatRepository(conn.DB)
 	ctx := context.Background()
@@ -56,8 +56,8 @@ func TestChatRepository_CreateChat(t *testing.T) {
 }
 
 func TestChatRepository_GetChat(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewChatRepository(conn.DB)
 	ctx := context.Background()

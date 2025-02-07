@@ -12,8 +12,8 @@ import (
 )
 
 func TestUserRepository_CreateUser(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewUserRepository(conn.DB)
 	ctx := context.Background()
@@ -64,8 +64,8 @@ func TestUserRepository_CreateUser(t *testing.T) {
 }
 
 func TestUserRepository_GetUser(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewUserRepository(conn.DB)
 	ctx := context.Background()
@@ -115,8 +115,8 @@ func TestUserRepository_GetUser(t *testing.T) {
 }
 
 func TestUserRepository_GetUserByEmail(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewUserRepository(conn.DB)
 	ctx := context.Background()
@@ -166,8 +166,8 @@ func TestUserRepository_GetUserByEmail(t *testing.T) {
 }
 
 func TestUserRepository_GetUsersChatList(t *testing.T) {
-	conn := setupTestDB(t)
-	defer conn.Close(context.Background())
+	conn, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	repo := mongodb.NewUserRepository(conn.DB)
 	ctx := context.Background()
