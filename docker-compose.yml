@@ -17,6 +17,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - CLIENT_URL=${CLIENT_URL}
       - AUTH_REDIRECT_URL=${AUTH_REDIRECT_URL}
+      - ANDROID_CLIENT_ID=${ANDROID_CLIENT_ID}
     depends_on:
       - mongodb
 
