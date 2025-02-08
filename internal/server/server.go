@@ -46,7 +46,7 @@ func Run() error {
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	aiStrategy := strategy.NewAIStrategy(aiService)
 	aiHandler := handler.NewAIHandler(aiStrategy)
-	authHandler := handler.NewAuthHandler(authService, cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.AuthRedirectURL, cfg.ClientURL)
+	authHandler := handler.NewAuthHandler(authService, cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.AuthRedirectURL, cfg.ClientURL, cfg.AndroidClientID)
 	chatRepo := mongodb.NewChatRepository(conn.DB)
 	chatService := service.NewChatService(chatRepo)
 	chatHandler := handler.NewChatHandler(chatService)
