@@ -28,6 +28,7 @@ func TestLoadConfig(t *testing.T) {
 				"JWT_SECRET":           "jwt-secret-789",
 				"CLIENT_URL":           "http://localhost:3000",
 				"AUTH_REDIRECT_URL":    "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID":    "client-123",
 			},
 			expectError: false,
 		},
@@ -44,6 +45,7 @@ func TestLoadConfig(t *testing.T) {
 				"JWT_SECRET":           "jwt-secret-789",
 				"CLIENT_URL":           "http://localhost:3000",
 				"AUTH_REDIRECT_URL":    "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID":    "client-123",
 			},
 			expectError: true,
 		},
@@ -59,6 +61,7 @@ func TestLoadConfig(t *testing.T) {
 				"JWT_SECRET":           "jwt-secret-789",
 				"CLIENT_URL":           "http://localhost:3000",
 				"AUTH_REDIRECT_URL":    "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID":    "client-123",
 			},
 			expectError: true,
 		},
@@ -74,6 +77,7 @@ func TestLoadConfig(t *testing.T) {
 				"JWT_SECRET":        "jwt-secret-789",
 				"CLIENT_URL":        "http://localhost:3000",
 				"AUTH_REDIRECT_URL": "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID": "client-123",
 			},
 			expectError: true,
 		},
@@ -90,6 +94,7 @@ func TestLoadConfig(t *testing.T) {
 				"GOOGLE_CLIENT_SECRET": "secret-456",
 				"CLIENT_URL":           "http://localhost:3000",
 				"AUTH_REDIRECT_URL":    "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID":    "client-123",
 			},
 			expectError: true,
 		},
@@ -105,6 +110,7 @@ func TestLoadConfig(t *testing.T) {
 				"GOOGLE_CLIENT_ID":     "client-123",
 				"GOOGLE_CLIENT_SECRET": "secret-456",
 				"JWT_SECRET":           "jwt-secret-789",
+				"ANDROID_CLIENT_ID":    "client-123",
 			},
 			expectError: true,
 		},
@@ -112,6 +118,24 @@ func TestLoadConfig(t *testing.T) {
 			name: "invalid SERVER_PORT",
 			envVars: map[string]string{
 				"SERVER_PORT":          "not-a-number",
+				"OPENAI_SK":            "sk-123",
+				"DEEPSEEK_SK":          "sk-456",
+				"GEMINI_SK":            "sk-789",
+				"MONGODB_URI":          "mongodb://localhost:27017",
+				"MONGODB_DATABASE":     "ai_router",
+				"GOOGLE_CLIENT_ID":     "client-123",
+				"GOOGLE_CLIENT_SECRET": "secret-456",
+				"JWT_SECRET":           "jwt-secret-789",
+				"CLIENT_URL":           "http://localhost:3000",
+				"AUTH_REDIRECT_URL":    "http://localhost:8080/callback",
+				"ANDROID_CLIENT_ID":    "client-123",
+			},
+			expectError: true,
+		},
+		{
+			name: "missing mobile client ID",
+			envVars: map[string]string{
+				"SERVER_PORT":          "8080",
 				"OPENAI_SK":            "sk-123",
 				"DEEPSEEK_SK":          "sk-456",
 				"GEMINI_SK":            "sk-789",
@@ -153,6 +177,7 @@ func TestLoadConfig(t *testing.T) {
 			assert.Equal(t, tt.envVars["JWT_SECRET"], cfg.JWTSecret)
 			assert.Equal(t, tt.envVars["CLIENT_URL"], cfg.ClientURL)
 			assert.Equal(t, tt.envVars["AUTH_REDIRECT_URL"], cfg.AuthRedirectURL)
+			assert.Equal(t, tt.envVars["ANDROID_CLIENT_ID"], cfg.AndroidClientID)
 		})
 	}
 }

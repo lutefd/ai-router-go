@@ -21,6 +21,7 @@ type Config struct {
 	JWTSecret          string
 	ClientURL          string
 	AuthRedirectURL    string
+	AndroidClientID    string
 	WorkerID           int64
 }
 
@@ -95,6 +96,9 @@ func LoadConfig(skipEnvFile ...bool) (*Config, error) {
 		config.WorkerID = int64(1)
 		log.Println("WORKER_ID environment variable is not set or invalid, defaulting to 1")
 	}
-
+	config.AndroidClientID = os.Getenv("ANDROID_CLIENT_ID")
+	if config.AndroidClientID == "" {
+		return nil, fmt.Errorf("ANDROID_CLIENT_ID environment variable is not set")
+	}
 	return config, nil
 }
