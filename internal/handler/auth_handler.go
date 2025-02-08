@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/lutefd/ai-router-go/internal/models"
@@ -16,14 +18,15 @@ import (
 )
 
 type AuthHandler struct {
-	oauthConfig *oauth2.Config
-	authService service.AuthServiceInterface
-	clientURL   string
+	oauthConfig     *oauth2.Config
+	authService     service.AuthServiceInterface
+	clientURL       string
+	AndroidClientID string
 }
 
 type TokenPair = service.TokenPair
 
-func NewAuthHandler(authService service.AuthServiceInterface, clientID, clientSecret, redirectURL, clientURL string) *AuthHandler {
+func NewAuthHandler(authService service.AuthServiceInterface, clientID, clientSecret, redirectURL, clientURL string, AndroidClientID string) *AuthHandler {
 	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -36,9 +39,10 @@ func NewAuthHandler(authService service.AuthServiceInterface, clientID, clientSe
 	}
 
 	return &AuthHandler{
-		oauthConfig: oauthConfig,
-		authService: authService,
-		clientURL:   clientURL,
+		oauthConfig:     oauthConfig,
+		authService:     authService,
+		clientURL:       clientURL,
+		AndroidClientID: AndroidClientID,
 	}
 }
 
@@ -174,12 +178,25 @@ func (h *AuthHandler) HandleNativeSignIn(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	var req struct {
 		IDToken string `json:"id_token"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if req.IDToken == "" {
+		http.Error(w, "ID token is required", http.StatusBadRequest)
 		return
 	}
 
@@ -213,6 +230,15 @@ func (h *AuthHandler) HandleNativeSignIn(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AuthHandler) verifyGoogleIDToken(ctx context.Context, idToken string) (*GoogleIDTokenClaims, error) {
+	if idToken == "" {
+		return nil, fmt.Errorf("empty token provided")
+	}
+
+	parts := strings.Split(idToken, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("malformed token: expected 3 parts, got %d", len(parts))
+	}
+
 	provider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create provider: %w", err)
@@ -224,7 +250,7 @@ func (h *AuthHandler) verifyGoogleIDToken(ctx context.Context, idToken string) (
 
 	token, err := verifier.Verify(ctx, idToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify token: %w", err)
+		return nil, fmt.Errorf("failed to verify token (len=%d): %w", len(idToken), err)
 	}
 
 	var claims GoogleIDTokenClaims

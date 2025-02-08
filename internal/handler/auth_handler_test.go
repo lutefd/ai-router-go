@@ -21,7 +21,7 @@ func TestAuthHandler_GoogleLogin(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAuthService := mocks.NewMockAuthServiceInterface(ctrl)
-	handler := NewAuthHandler(mockAuthService, "client-id", "client-secret", "http://localhost:8080/callback", "http://localhost:3000")
+	handler := NewAuthHandler(mockAuthService, "client-id", "client-secret", "http://localhost:8080/callback", "http://localhost:3000", "client-id")
 
 	tests := []struct {
 		name             string
@@ -97,6 +97,7 @@ func TestAuthHandler_GoogleCallback(t *testing.T) {
 		"client-secret",
 		"http://localhost:8080/callback",
 		"http://localhost:3000",
+		"client-id",
 	)
 
 	handler.oauthConfig = &oauth2.Config{
@@ -219,7 +220,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAuthService := mocks.NewMockAuthServiceInterface(ctrl)
-	handler := NewAuthHandler(mockAuthService, "client-id", "client-secret", "http://localhost:8080/callback", "http://localhost:3000")
+	handler := NewAuthHandler(mockAuthService, "client-id", "client-secret", "http://localhost:8080/callback", "http://localhost:3000", "client-id")
 
 	tests := []struct {
 		name           string
